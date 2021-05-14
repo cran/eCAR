@@ -14,6 +14,7 @@ semipar.eCAR.Leroux(y, x, W,
                        pcprior.sd=c(0.1,1),
                        s2=10,
                        method = "spectral",
+                       num.threads.inla = NULL,
                        verbose=FALSE, ...)
 }
 \arguments{
@@ -44,9 +45,11 @@ semipar.eCAR.Leroux(y, x, W,
 
 \item{s2}{Prior variance for the log of the dispersion parameter (only used for model="Negative Binomial", default equal to 10).}
 
-\item{method}{a character defining the type of adjustment; either "spectral" (default choice) which implements the model assuming (spatial scale)-varying beta, or "naive" which implements the standard method with constant beta hence no spectral adjustment.}
+\item{method}{A character defining the type of adjustment; either "spectral" (default choice) which implements the model assuming (spatial scale)-varying beta, or "naive" which implements the standard method with constant beta hence no spectral adjustment.}
 
 \item{verbose}{logical; if TRUE the verbose output from the "inla" call is printed.}
+
+\item{num.threads.inla}{Argument that indicates the number of computing cores that the INLA call will occupy.  For syntax, see ``inla.setOption"}
 
 \item{...}{Arguments to be passed to the "inla" call; for instance control.inla=list(strategy="laplace")}}
 
@@ -91,12 +94,14 @@ E <- lipcancer$data$expected
 
 \donttest{
 
-
-fit1 = semipar.eCAR.Leroux(y=Y, x=X, W=W, E=E, C=NULL,
+if (requireNamespace("INLA", quietly = TRUE)) {
+  fit1 = semipar.eCAR.Leroux(y=Y, x=X, W=W, E=E, C=NULL,
                                     pcprior.sd = c(0.1,1),
                                     model="Poisson",
                                     L=10,
+                                    num.threads.inla = '1:1',
                                     verbose=FALSE)
-plot(fit1)
+  plot(fit1)
+}
 }
 }
