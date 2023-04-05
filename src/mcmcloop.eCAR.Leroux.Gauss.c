@@ -46,7 +46,8 @@
 
 void mcmcloop_leroux_gauss(int *draws, int *burn, int *thin, int *nobs, double *y, double *x,
 			                double *evals,  double *Cstar, int *ncov, double *modelPriors,
-			                double *MHsd, int *verbose, int* joint_prior_lamx_lamz, int *updateXparms,
+			                double *MHsd, int *verbose, int* joint_prior_lamx_lamz, 
+			                int *updateXparms, double *lamx_fix, double *sig2x_fix,
 			                double *beta, double *alpha, double *tau, double *sig2x, double *lamx,
 			                double *lamz, double *sig2, double *eta){
 
@@ -87,11 +88,13 @@ void mcmcloop_leroux_gauss(int *draws, int *burn, int *thin, int *nobs, double *
 	//
 	// ===================================================================================
 
-	double sig2x_iter=sig2x[0], lamx_iter=lamx[0];
+	double sig2x_iter=*sig2x_fix, lamx_iter=*lamx_fix;
 	double beta_iter=0, alpha_iter=1;
   	double lamz_iter=0.35, tau_iter=1.0;
   	double sig2_iter = 0.5;
 	double *eta_iter = R_VectorInit(*ncov, 0.0);
+
+
 	// ===================================================================================
 	//
 	// scratch vectors of memory needed to update parameters
@@ -136,17 +139,18 @@ void mcmcloop_leroux_gauss(int *draws, int *burn, int *thin, int *nobs, double *
 	// ===================================================================================
 
 	// prior values
-  	double m=modelPriors[0], s2=modelPriors[1]; // prior values for (alpha, beta) ~ N(m, s2I)
+  	double mb=modelPriors[0], s2b=modelPriors[1]; // prior values for beta ~ N(mb, s2b)
 	double alamx = modelPriors[2], blamx=modelPriors[3]; // prior values for for lamx ~ Beta(a,b)
 	double alamz = modelPriors[4], blamz=modelPriors[5]; // prior values for for lamz ~ Beta(a,b)
 	double asig = modelPriors[6], bsig=modelPriors[7]; // shape and scale for sig2 ~ Gamma(a,b)
 	double atau = modelPriors[8], btau=modelPriors[9]; // shape and scale for tau ~ Gamma(a,b)
 	double asigx = modelPriors[10], bsigx=modelPriors[11]; // shape and scale for sig2x ~ InvGamma(a,b)
 	double me = modelPriors[14], s2e=modelPriors[15]; // mean and variance for eta ~ N(me*j,se*I)
+    double ma = modelPriors[18], s2a = modelPriors[19]; // prior values for alpha ~ N(ma, s2a)
 
 	if(*verbose){
-    	Rprintf("Prior values are: m=%f, s2=%f, alamx=%f, blamx=%f,\n alamz=%f, blamz=%f, asig=%f, bsig=%f, \n atau=%f, btau=%f, asigx=%f, bsigx=%f\n",
-              m, s2, alamx,blamx,alamz,blamz,asig, bsig, atau, btau,asigx, bsigx);
+    	Rprintf("Prior values are: mb=%0.1f, s2b=%0.1f, ma=%0.1f, s2a=%0.1f, alamx=%0.1f, blamx=%0.1f,\n alamz=%0.1f, blamz=%0.1f, asig=%0.1f, bsig=%0.1f, \n atau=%0.1f, btau=%0.1f, asigx=%0.1f, bsigx=%0.1f\n",
+              mb, s2b, ma, s2a,  alamx,blamx,alamz,blamz,asig, bsig, atau, btau,asigx, bsigx);
 //	  if(*joint_prior_lamx_lamz) Rprinf("Prior Pr(lam_z > lam_x) = 1 \n");
 	}
 	GetRNGstate();
@@ -218,7 +222,7 @@ void mcmcloop_leroux_gauss(int *draws, int *burn, int *thin, int *nobs, double *
       		llr = lln - llo;
       		uu = runif(0,1);
 
-      		if(llr > log(uu)) lamz_iter = lamn;
+            if(llr > log(uu)) lamz_iter = lamn;
 
     	}
 
@@ -264,7 +268,7 @@ void mcmcloop_leroux_gauss(int *draws, int *burn, int *thin, int *nobs, double *
       			llr = lln - llo;
       			uu = runif(0,1);
 
-      			if(llr > log(uu)) lamx_iter = lamn;
+                if(llr > log(uu)) lamx_iter = lamn;
     		}
 		}
 
@@ -296,7 +300,7 @@ void mcmcloop_leroux_gauss(int *draws, int *burn, int *thin, int *nobs, double *
       		llr = lln - llo;
       		uu = runif(0,1);
 
-      		if(llr > log(uu)) tau_iter = taun;
+	      	if(llr > log(uu)) tau_iter = taun;
 
     	}
 
@@ -328,7 +332,7 @@ void mcmcloop_leroux_gauss(int *draws, int *burn, int *thin, int *nobs, double *
       		llr = lln - llo;
       		uu = runif(0,1);
 
-      		if(llr > log(uu)) sig2_iter = s2n;
+      	    if(llr > log(uu)) sig2_iter = s2n;
 
     	}
 
@@ -382,7 +386,7 @@ void mcmcloop_leroux_gauss(int *draws, int *burn, int *thin, int *nobs, double *
 
       		Sstar[3] = Sstar[3] + sqrt((1.0 - lamx_iter + lamx_iter*evals[j])/(1.0 - lamz_iter + lamz_iter*evals[j]))*x[j]*
 		                          1/(tau_iter/(1.0 - lamz_iter + lamz_iter*evals[j]) + sig2_iter)*
-		                        sqrt((1.0 - lamx_iter + lamx_iter*evals[j])/(1.0 - lamz_iter + lamz_iter*evals[j]))*x[j];
+		                          sqrt((1.0 - lamx_iter + lamx_iter*evals[j])/(1.0 - lamz_iter + lamz_iter*evals[j]))*x[j];
 
 
 
@@ -393,9 +397,9 @@ void mcmcloop_leroux_gauss(int *draws, int *burn, int *thin, int *nobs, double *
 
 		}
 
-		scr1[0] = scr1[0] + (1/s2)*m; scr1[1] = scr1[1] + (1/s2)*m; // add prior in
+		scr1[0] = scr1[0] + (1/s2b)*mb; scr1[1] = scr1[1] + (1/s2a)*ma; // add prior in
 
-    	Sstar[0] = Sstar[0] + 1/s2; Sstar[3] = Sstar[3] + 1/s2; // add prior
+    	Sstar[0] = Sstar[0] + 1/s2b; Sstar[3] = Sstar[3] + 1/s2a; // add prior
 
     	// Get inverse of the 2 x 2 Sstar matrix
 		Det = (Sstar[0]*Sstar[3] - Sstar[1]*Sstar[2]);
@@ -414,7 +418,7 @@ void mcmcloop_leroux_gauss(int *draws, int *burn, int *thin, int *nobs, double *
 		ran_mvnorm(Mstar, SstarInv, (2), scr1, outrmvnorm);
 
     	beta_iter = outrmvnorm[0];
-   		alpha_iter = outrmvnorm[1];
+        alpha_iter = outrmvnorm[1];
 
 
 		////////////////////////
@@ -474,6 +478,7 @@ void mcmcloop_leroux_gauss(int *draws, int *burn, int *thin, int *nobs, double *
     	}
 
 
+
 		//////////////////////////////////////////////////////////////////////////////////
 		//																				                                      //
 		// Save MCMC iterates															                              //
@@ -485,7 +490,7 @@ void mcmcloop_leroux_gauss(int *draws, int *burn, int *thin, int *nobs, double *
 			lamx[ii] = lamx_iter;
       		tau[ii] = tau_iter;
       		sig2[ii] = sig2_iter;
-      		sig2x[ii] = sig2x_iter;
+            sig2x[ii] = sig2x_iter;
       		beta[ii] = beta_iter;
       		alpha[ii] = alpha_iter;
       		for(b=0; b<*ncov; b++){
@@ -496,7 +501,6 @@ void mcmcloop_leroux_gauss(int *draws, int *burn, int *thin, int *nobs, double *
 		}
 
 	}
-
 	PutRNGstate();
 
 

@@ -2,14 +2,24 @@
 
 
 # Wrapper to fit the joint Leroux model
-par.eCAR.Leroux <- function(y,x,W,E=NULL,C=NULL,model="Gaussian",
-                    joint_prior_lamx_lamz = FALSE,
-                    lamx.fix.val = NULL, sig2x.fix.val = NULL,
-                    m=0,s2=10,alamx=1,blamx=1,alamz=1,blamz=1,
-                    asig=1,bsig=1,atau=1,btau=1,asigx=1,bsigx=1,
-                    mb0=0,s2b0=100,me=0,s2e=100,mx=0, s2x=100,
-                    tau_cand_sd=1, sig2_cand_sd=1,
-                    draws=10000,burn=5000,thin=5, verbose=TRUE){
+par.eCAR.Leroux <- function(y,x,W,
+                            E=NULL,
+                            C=NULL,
+                            model="Gaussian",
+                            joint_prior_lamx_lamz = FALSE,
+                            lamx.fix.val = NULL, sig2x.fix.val = NULL,
+                            mb=0,s2b=10,
+                            mg=0,s2g=10.0,
+                            alamx=1,blamx=1,
+                            alamz=1,blamz=1,
+                            asig=1,bsig=1,
+                            atau=1,btau=1,
+                            asigx=1,bsigx=1,
+                            mb0=0,s2b0=100,
+                            me=0,s2e=100,
+                            mx=0, s2x=100,
+                            tau_cand_sd=1, sig2_cand_sd=1,
+                            draws=10000,burn=5000,thin=5, verbose=TRUE){
   # W - is the neighborhood matrix
   # C - is the matrix of confounder covariates that are included not
 
@@ -62,20 +72,24 @@ par.eCAR.Leroux <- function(y,x,W,E=NULL,C=NULL,model="Gaussian",
     Cstar <- t(evecs) %*% as.matrix(C)
   }
 
-  updateXparms <- FALSE
+  # Assign starting values for sig2x and lamx
+  # if they are not supplied by the user
+  sig2x_fix<-sig2x.fix.val; lamx_fix<-lamx.fix.val;
+  updateXparms <- FALSE;
   if(is.null(lamx.fix.val) | is.null(sig2x.fix.val)){
     updateXparms <- TRUE
-    sig2x.fix.val <- 1
-    lamx.fix.val <- 0.5
+    lamx_fix <- 0.5
+    sig2x_fix <- 1
   }
 
 
-  modelPriors = c(m, s2, alamx, blamx, alamz, blamz, asig, bsig,
-                  atau, btau, asigx, bsigx, mb0, s2b0, me, s2e, mx, s2x)
+  modelPriors = c(mb, s2b, alamx, blamx, alamz, blamz, asig, bsig,
+                  atau, btau, asigx, bsigx, mb0, s2b0, me, s2e, mx, s2x,
+                  mg, s2g)
   MHsd <- c(tau_cand_sd, sig2_cand_sd)
   beta0 <- beta <- alpha <- tau <- sig2 <- rep(1, nout)
-  sig2x <- rep(sig2x.fix.val,nout)
-  lamx <- lamz <- rep(lamx.fix.val, nout)
+  sig2x <- rep(sig2x_fix,nout)
+  lamx <- lamz <- rep(lamx_fix, nout)
   theta <- nb_r <- matrix(0, nrow=nout, ncol=nobs)
   eta <- matrix(0, nrow=nout, ncol=ncov)
 
@@ -91,7 +105,8 @@ par.eCAR.Leroux <- function(y,x,W,E=NULL,C=NULL,model="Gaussian",
                 as.double(evals), as.double(t(Cstar)), as.integer(ncov),
                 as.double(modelPriors), as.double(MHsd),
                 as.integer(verbose), as.integer(joint_prior_lamx_lamz),
-                as.integer(updateXparms),
+                as.integer(updateXparms), as.double(lamx_fix),
+                as.double(sig2x_fix),
                 beta.out=as.double(beta), alpha.out=as.double(alpha),
                 tau.out=as.double(tau), sig2x.out=as.double(sig2x),
                 lamx.out=as.double(lamx), lamz.out=as.double(lamz),
